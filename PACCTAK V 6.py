@@ -261,8 +261,9 @@ class Equipe:
             self.avion.touched += av.touched
             self.avion.bullets_damages += av.bullets_damages
             self.avion.missiles_damages += av.missiles_damages
-            self.avion.nbr_shot_b = av.nbr_shot_b
-            self.avion.nbr_shot_m = av.nbr_shot_m
+            self.avion.nbr_shot_b += av.nbr_shot_b
+            self.avion.nbr_shot_m += av.nbr_shot_m
+            self.avion.nbr_ram += av.nbr_ram
             self.avion.death_order += av.death_order
             self.avion.podium += av.podium
             self.avion.dead_time += av.dead_time
@@ -516,6 +517,7 @@ def table_maker(p, name, table: List[Avion], recalculate, configs, date, duree, 
                          'Nb_Ram', 'Parts_rammed', 'CleanKillRam',
                          'DeathOrder', 'Dead_Time', 'Score', 'Podium']
         if team_play:
+            table_heading.pop(19)
             table_heading[4] = '%alive'
             table_heading.pop(3)
             table_heading.pop(1)
@@ -535,7 +537,7 @@ def table_maker(p, name, table: List[Avion], recalculate, configs, date, duree, 
                      avion.nbr_shot_b, avion.bullets_damages, avion.nbr_clean_k_b,
                      avion.fired, avion.touched, round(acc*100, 3),
                      avion.nbr_ram, avion.parts_destructed_by_ram, avion.nbr_clean_k_ram,
-                     avion.death_order, avion.dead_time, round(avion.score, 3), avion.podium]
+                     avion.death_order, avion.dead_time, avion.podium]
             else:
                 t = [avion.stock_mod, avion.cat, avion.equipe, avion.joueur, avion.craft_name,
                      avion.nbr_shot_m, avion.missiles_damages, avion.nbr_clean_k_m,
@@ -878,16 +880,22 @@ def team_f(p, avions, configs, date, duree):
             teams[avion.equipe].avions_de_lequipe.append(avion)
         else:
             teams[avion.equipe] = Equipe(avion.equipe, [avion], 'None')
-    avions_teams = {}
+    avions_teams = []
     for team in teams.values():
         team.plane_creator()
-        avions_teams[team.nom] = team.avion
     with open(p/'teams.json', 'r') as file:
         txt = ''
         for line in file:
             txt += line
         values = loads(txt)
-    table_maker(p, f'team tournament.csv', Section(avions_teams).tri_avions(False, configs), False, configs, date, duree, True, values)
+    pourcentalive = []
+    for e, v in values.items():
+        pourcentalive.append((v[1] / v[0], e))
+    pourcentalive.sort(key=lambda x: x[0], reverse=True)
+    for i, po in enumerate(pourcentalive):
+        teams[po[1]].avion.podium = i+1
+        avions_teams.append(teams[po[1]].avion)
+    table_maker(p, f'team tournament.csv', avions_teams, False, configs, date, duree, True, values)
     (p/'teams.json').unlink()
 
 
